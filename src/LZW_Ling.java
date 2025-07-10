@@ -70,7 +70,7 @@ import java.util.*;
 public class LZW_Ling {
     public static LangDictionaryLZW LangDictionaryLZW;
     public static HashSet<Character> textSymbols;
-    public static String version = "1.0.0";
+    public static String version = "1.1.0";
 
     public static void main(String[] args) throws IOException {
         textSymbols = new HashSet<>();
@@ -113,7 +113,7 @@ public class LZW_Ling {
                 System.out.println("Processing... Please wait.");
                 start = System.currentTimeMillis();
                 LangDictionaryLZW.setLang(lang);
-                List<Short> code = EncodeText(text);
+                List<Boolean> code = EncodeText(text);
                 String binPath = "bin_files/" + file.getName().substring(0, file.getName().length() - 3) + "bin";
                 WriteBinFile(binPath, code, lang);
                 finish = System.currentTimeMillis();
@@ -200,8 +200,8 @@ public class LZW_Ling {
         }
     }
 
-    public static List<Short> EncodeText(String text) {
-        List<Short> result = new ArrayList<>();
+    public static List<Boolean> EncodeText(String text) {
+        List<Boolean> result = new ArrayList<>();
         StringBuilder buffer = new StringBuilder();
         String pair = "";
         int currentSymbol = addSymbolsToBuffer(buffer, text, 0);
@@ -209,22 +209,39 @@ public class LZW_Ling {
         while (!buffer.isEmpty()) {
             String s = isStringHasAWord(buffer, LangDictionaryLZW.getFirstLetterList(buffer.charAt(0)));
             if (s == null) {
-                if (!pair.isEmpty() && LangDictionaryLZW.isDictionaryNotFull()) {
-                    LangDictionaryLZW.addWord(pair + buffer.charAt(0));
-                }
-                pair = buffer.substring(0, 1);
+                s = buffer.substring(0, 1);
                 buffer = new StringBuilder(buffer.substring(1));
             } else {
                 buffer = new StringBuilder(buffer.substring(s.length()));
-                if (!pair.isEmpty() && LangDictionaryLZW.isDictionaryNotFull()) {
-                    LangDictionaryLZW.addWord(pair + s);
-                }
-                pair = s;
             }
-            result.add(LangDictionaryLZW.getCode(pair));
+            addBytesToList(result, LangDictionaryLZW.getCode(s), getByteLength());
+            if (!pair.isEmpty() && LangDictionaryLZW.isDictionaryNotFull()) {
+                LangDictionaryLZW.addWord(pair + s);
+            }
+            pair = s;
             currentSymbol += addSymbolsToBuffer(buffer, text, currentSymbol);
         }
         return result;
+    }
+
+    public static void addBytesToList(List<Boolean> list, Integer code, int n) {
+        String binary = Integer.toBinaryString(code);
+        if (binary.length() < n) {
+            for (int i = 0; i < n - binary.length(); i++) {
+                list.add(false);
+            }
+            for (int i = 0; i < binary.length(); i++) {
+                if (binary.charAt(i) == '0') list.add(false);
+                else list.add(true);
+            }
+        } else for (int i = 0; i < n; i++) {
+                if (binary.charAt(i) == '0') list.add(false);
+                else list.add(true);
+            }
+    }
+
+    public static int getByteLength() {
+        return 64 - Long.numberOfLeadingZeros(LangDictionaryLZW.getSizeOfDictionary());
     }
 
     public static int addSymbolsToBuffer(StringBuilder buffer, String text, int curSym) {
@@ -249,11 +266,23 @@ public class LZW_Ling {
         return null;
     }
 
-    public static String DecodeText(List<Short> code) {
+    public static String DecodeText(List<Boolean> code) {
         StringBuilder result = new StringBuilder();
         StringBuilder buffer = new StringBuilder();
-        for (Short b : code) {
-            String s = LangDictionaryLZW.getWord(b);
+        List<Boolean> decode = new ArrayList<>();
+        int i = 0;
+
+        while (i < code.size() && code.size() - i >= getByteLength()) {
+            for (int j = 0; j < getByteLength(); j++, i++) {
+                decode.add(code.get(i));
+            }
+
+            int y = composeAnInteger(decode);
+            String s = LangDictionaryLZW.getWord(y);
+            if (s == null) {
+                System.out.println(y);
+                break;
+            }
             result.append(s);
             if (LangDictionaryLZW.isDictionaryNotFull()) {
                 buffer.append(s);
@@ -264,6 +293,19 @@ public class LZW_Ling {
             }
         }
         return result.toString();
+    }
+
+    public static Integer composeAnInteger(List<Boolean> list) {
+        StringBuilder sb = new StringBuilder(32);
+        if (list.size() == 32) sb.append('-');
+        else sb.append('+');
+        sb.append("0".repeat(Math.max(0, 31 - list.size())));
+        for (Boolean aBoolean : list) {
+            if (aBoolean) sb.append('1');
+            else sb.append('0');
+        }
+        list.clear();
+        return Integer.parseInt(sb.toString(), 2);
     }
 
     public static String ReadTextFile(String filename) {
@@ -293,19 +335,35 @@ public class LZW_Ling {
         }
     }
 
-    public static void WriteBinFile(String filename, List<Short> codes, String lang) {
+    public static void WriteBinFile(String filename, List<Boolean> codes, String lang) {
         try {
             FileOutputStream writer = new FileOutputStream(filename);
             DataOutputStream dos = new DataOutputStream(writer);
+
             dos.writeUTF(version);
             dos.writeUTF(lang);
             dos.writeShort((short) textSymbols.size());
             for (Character textSymbol : textSymbols) {
                 dos.writeChar(textSymbol);
             }
-            for (Short code : codes) {
-                dos.writeShort(code);
+
+            int currentByte = 0;
+            int bitCount = 0;
+            for (Boolean code : codes) {
+                currentByte = (currentByte << 1) | (code ? 1 : 0);
+                bitCount++;
+
+                if (bitCount == 8) {
+                    dos.write(currentByte);
+                    currentByte = 0;
+                    bitCount = 0;
+                }
             }
+            if (bitCount > 0) {
+                currentByte = currentByte << (8 - bitCount);
+                dos.write(currentByte);
+            }
+
             dos.close();
             writer.close();
         } catch (IOException e) {
@@ -313,28 +371,36 @@ public class LZW_Ling {
         }
     }
 
-    public static List<Short> ReadBinFile(String filename) {
-        List<Short> result = new ArrayList<>();
+    public static List<Boolean> ReadBinFile(String filename) {
+        List<Boolean> result = new ArrayList<>();
         try {
             FileInputStream reader = new FileInputStream(filename);
             DataInputStream dis = new DataInputStream(reader);
+
             String ver = dis.readUTF();
             if (!ver.equals(version)) {
                 if (!HandleVersionMismatch(ver)) System.exit(0);
+
             }
             String lang = dis.readUTF();
-            short i = dis.readShort();
-            for (; i > 0; i--) {
+
+            for (short i = dis.readShort(); i > 0; i--) {
                 char c = dis.readChar();
                 textSymbols.add(c);
             }
-            while (dis.available() > 0) {
-                result.add(dis.readShort());
-            }
-            dis.close();
-            reader.close();
             LangDictionaryLZW.addTextSymbols(textSymbols);
             LangDictionaryLZW.setLang(lang);
+
+            int currentByte;
+            while ((currentByte = dis.read()) != -1) {
+                for (int i = 7; i >= 0; i--) {
+                    boolean bit = ((currentByte >> i) & 1) == 1;
+                    result.add(bit);
+                }
+            }
+
+            dis.close();
+            reader.close();
         } catch (IOException e) {
             throw new RuntimeException(e + "\nFile was not found in specified location.");
         }

@@ -13,10 +13,10 @@ import java.util.*;
  */
 
 public class LangDictionaryLZW {
-    public LinkedHashMap<String, Short> Dictionary;
+    public LinkedHashMap<String, Integer> Dictionary;
     public HashMap<Character, TreeSet<String>> WordsByFirstLetter;
     public int maximumLength;
-    public short code = Short.MIN_VALUE;
+    public int code = 0;
     private final String[] eng = {"ed ", "er ", " the ", " a ", " an ", " as ", "ing ", " with ", "th", " if ",
             " and ", " are ", "'re ", " am ", " by ", "he", "in", "er", "an", "re", "on", "at", "en", "nd", "ti",
             "es", "or", "te", "of", "ed", " is ", "it", "al", "ar", "st", "to", "nt", "oo", " what ", "n't ", "'s",
@@ -80,10 +80,10 @@ public class LangDictionaryLZW {
             if (maximumLength < word.length()) maximumLength = word.length();
         }
     }
-    public Short getCode(String word) {
+    public Integer getCode(String word) {
         return Dictionary.get(word);
     }
-    public String getWord(Short b) {
+    public String getWord(Integer b) {
         for (String s : Dictionary.keySet()) {
             if (Dictionary.get(s).equals(b)) {
                 return s;
@@ -95,6 +95,9 @@ public class LangDictionaryLZW {
         return WordsByFirstLetter.get(firstLetter);
     }
     public boolean isDictionaryNotFull() {
-        return code < Short.MAX_VALUE;
+        return code < Integer.MAX_VALUE;
+    }
+    public int getSizeOfDictionary() {
+        return Dictionary.size();
     }
 }
