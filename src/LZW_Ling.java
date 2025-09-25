@@ -5,7 +5,7 @@ import java.nio.file.Paths;
 import java.util.*;
 
 /***
- * ENG Version 1.0.0
+ * ENG Version 1.1.1
  * LZW algorithm archiver
  * Made as a result of the computer science bachelor thesis titled "Development of the text archivers using linguistic features of the language"
  * Author: Artjom Šiškov
@@ -25,7 +25,7 @@ import java.util.*;
  *      b. Choose the file you want to decode. Files are marked in blue, folders marked in yellow.
  *      c. Wait until the file is decoded. All decoded files are added to the "decoded" folder.
  *      Note: The system will tell you the data decompression ratio given in % and the time spent in milliseconds.
- * EST Versioon 1.0.0
+ * EST Versioon 1.1.1
  * LZW algoritmi kasutatav arhiveerija.
  * Valminud bakalaureusetöö raames pealkirjaga "Tekstiarhiveerijate arendamine kasutades keelelisi iseärasusi"
  * Autor: Artjom Šiškov
@@ -45,7 +45,7 @@ import java.util.*;
  *      b. Valige fail dekodeerimiseks. Failid on tähistatud sinise ja kaustad kollase värvidega.
  *      b. Oodake, kuni fail dekodeeritakse. Kõik dekodeeritud failid lisatakse kausta "decoded".
  *      Märkus: Süsteem kuvab andmete dekompressiooni suhte protsentides ja kulutatud aja millisekundites.
- * РУС Версия 1.0.0
+ * РУС Версия 1.1.1
  * Архиватор, использующий алгоритм LZW
  * Разработан в рамках бакалаврской работы по теме "Разработка текстовых архиваторов с использованием лингвистических особенностей языка"
  * Автор: Артём Шишков
@@ -70,7 +70,7 @@ import java.util.*;
 public class LZW_Ling {
     public static LangDictionaryLZW LangDictionaryLZW;
     public static HashSet<Character> textSymbols;
-    public static String version = "1.1.0";
+    public static String version = "1.1.1";
 
     public static void main(String[] args) throws IOException {
         textSymbols = new HashSet<>();
